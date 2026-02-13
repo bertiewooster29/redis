@@ -66,9 +66,13 @@ def display_image(image):
 
 if __name__ == "__main__":
     dataset_path = Path("dataset/gzip")
-    
-    images = read_idx_images(dataset_path / "emnist-mnist-test-images-idx3-ubyte.gz")
-    labels = read_idx_labels(dataset_path / "emnist-mnist-test-labels-idx1-ubyte.gz")
+
+#    # Test set (10k images)   
+#    images = read_idx_images(dataset_path / "emnist-mnist-test-images-idx3-ubyte.gz")
+#    labels = read_idx_labels(dataset_path / "emnist-mnist-test-labels-idx1-ubyte.gz")
+    # Training set (60k images)   
+    images = read_idx_images(dataset_path / "emnist-mnist-train-images-idx3-ubyte.gz")
+    labels = read_idx_labels(dataset_path / "emnist-mnist-train-labels-idx1-ubyte.gz")
     
     print(f"Loaded {len(images)} images with shape {images.shape}")
     print(f"Loaded {len(labels)} labels\n")
