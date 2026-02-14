@@ -3,6 +3,7 @@ import struct
 from pathlib import Path
 
 import numpy as np
+import redis
 
 # IDX file format magic numbers
 IDX3_IMAGES_MAGIC = 2051
@@ -50,7 +51,7 @@ def display_image(image):
     # Unicode block characters from darkest to lightest
     chars = " ░▒▓█"
     
-    # Transpose
+    # Image data must be transposed to see it "right"
     transformed = image.T
     
     for row in transformed:
@@ -74,12 +75,58 @@ def serialize_to_binary(image):
     return image.tobytes()
 
 
+def binary_to_csv(binary_data):
+    """Convert binary serialized image to CSV format."""
+    return ",".join(str(byte) for byte in binary_data)
+
+
+def csv_to_binary(csv_string):
+    """Convert CSV serialized image to binary format."""
+    values = [int(val) for val in csv_string.split(",")]
+    return bytes(values)
+
+
+def store_samples_in_redis_as_csv(redis_client, labels, images_csv):
+    """Store label and image data in Redis as JSON objects."""
+    import json
+    
+    for i, (label, csv_string) in enumerate(zip(labels, images_csv)):
+        # Convert CSV string to list of integers
+        pixels = [int(val) for val in csv_string.split(",")]
+        
+        # Create JSON object
+        data = {
+            "label": int(label),
+            "pixels": pixels
+        }
+        
+        # Store in Redis with key pattern "sample:csv:{index}"
+        key = f"sample:csv:{i}"
+        redis_client.json().set(key, "$", data)
+        
+    print(f"Stored {len(labels)} samples in Redis")
+
+
+def store_samples_in_redis_as_binary(redis_client, labels, images_binary):
+    """Store labels and binary image data in Redis separately."""
+    for i, (label, binary_data) in enumerate(zip(labels, images_binary)):
+        # Store label as integer
+        label_key = f"sample:label:{i}"
+        redis_client.set(label_key, int(label))
+        
+        # Store binary image data
+        image_key = f"sample:imgbin:{i}"
+        redis_client.set(image_key, binary_data)
+
+    print(f"Stored {len(labels)} samples in Redis")
+
+
 if __name__ == "__main__":
     dataset_path = Path("dataset/gzip")
 
-#    # Test set (10k images)   
-#    images = read_idx_images(dataset_path / "emnist-mnist-test-images-idx3-ubyte.gz")
-#    labels = read_idx_labels(dataset_path / "emnist-mnist-test-labels-idx1-ubyte.gz")
+    # # Test set (10k images)   
+    # images = read_idx_images(dataset_path / "emnist-mnist-test-images-idx3-ubyte.gz")
+    # labels = read_idx_labels(dataset_path / "emnist-mnist-test-labels-idx1-ubyte.gz")
     # Training set (60k images)   
     images = read_idx_images(dataset_path / "emnist-mnist-train-images-idx3-ubyte.gz")
     labels = read_idx_labels(dataset_path / "emnist-mnist-train-labels-idx1-ubyte.gz")
@@ -91,3 +138,29 @@ if __name__ == "__main__":
     for i in range(5):
         print(f"Image {i} - Label: {labels[i]}")
         display_image(images[i])
+
+    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+
+    # Store just a few images
+    my_labels = labels[0:200]
+    my_images = images[0:200]
+    my_images_binary = []
+    for i in range(len(my_images)):
+        my_images_binary.append(serialize_to_binary(my_images[i]))
+    my_images_csv = []
+    for i in range(len(my_images)):
+        my_images_csv.append(serialize_to_csv(my_images[i]))
+
+    store_samples_in_redis_as_binary(r, labels, my_images_binary)
+    store_samples_in_redis_as_csv(r, labels, my_images_csv)
+
+    # # Store all images
+    # my_images_binary = []
+    # for i in range(len(images)):
+    #     my_images_binary.append(serialize_to_binary(images[i]))
+    # my_images_csv = []
+    # for i in range(len(images)):
+    #     my_images_csv.append(serialize_to_csv(images[i]))
+
+    # store_samples_in_redis_as_binary(r, labels, my_images_binary)
+    # store_samples_in_redis_as_csv(r, labels, my_images_csv)
