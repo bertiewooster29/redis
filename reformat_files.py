@@ -86,11 +86,18 @@ def csv_to_binary(csv_string):
     return bytes(values)
 
 
-def store_samples_in_redis_as_json(redis_client, labels, images_csv):
-    """Store label and image data in Redis as JSON objects."""
-    import json
+def store_samples_in_redis_as_json(redis_client, labels, images):
+    """Store label and image data in Redis as JSON objects.
     
-    for i, (label, csv_string) in enumerate(zip(labels, images_csv)):
+    Args:
+        redis_client: Redis connection object
+        labels: List/array of labels
+        images: List/array of image matrices in original format
+    """
+    for i, (label, image) in enumerate(zip(labels, images)):
+        # Convert image to CSV format
+        csv_string = serialize_to_csv(image)
+        
         # Convert CSV string to list of integers
         pixels = [int(val) for val in csv_string.split(",")]
         
@@ -100,23 +107,32 @@ def store_samples_in_redis_as_json(redis_client, labels, images_csv):
             "pixels": pixels
         }
         
-        # Store in Redis under key img:json:{index}
+        # Store in Redis under key img:json:x as a JSON object
         key = f"img:json:{i}"
         redis_client.json().set(key, "$", data)
         
-    print(f"Stored {min(len(labels), len(images_csv))} samples in Redis as img:json:x")
+    print(f"Stored {min(len(labels), len(images_csv))} samples in Redis as JSON under img:json:x.")
 
 
-def store_samples_in_redis_as_binary(redis_client, labels, images_binary):
-    """Store labels and binary image data in Redis separately."""
-    for i, (label, binary_data) in enumerate(zip(labels, images_binary)):
+def store_samples_in_redis_as_binary(redis_client, labels, images):
+    """Store labels and binary image data in Redis separately.
+    
+    Args:
+        redis_client: Redis connection object
+        labels: List/array of labels
+        images: List/array of image matrices in original format
+    """
+    for i, (label, image) in enumerate(zip(labels, images)):
+        # Convert image to binary string format
+        binary_string = serialize_to_binary(image)
+
         # Store in Redis under key img:label:{index} as an integer
         label_key = f"img:label{i}"
         redis_client.set(label_key, int(label))
         
         # Store in Redis under key img:string:{index} as a binary string
         image_key = f"img:string:{i}"
-        redis_client.set(image_key, binary_data)
+        redis_client.set(image_key, binary_string)
 
     print(f"Stored {min(len(labels), len(images_binary))} samples in Redis as img:labelx and img:string:x.")
 
@@ -142,25 +158,9 @@ if __name__ == "__main__":
     r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
     # Store just a few images
-    my_labels = labels[0:200]
-    my_images = images[0:200]
-    my_images_binary = []
-    for i in range(len(my_images)):
-        my_images_binary.append(serialize_to_binary(my_images[i]))
-    my_images_csv = []
-    for i in range(len(my_images)):
-        my_images_csv.append(serialize_to_csv(my_images[i]))
-
-    store_samples_in_redis_as_binary(r, my_labels, my_images_binary)
-    store_samples_in_redis_as_json(r, my_labels, my_images_csv)
+    store_samples_in_redis_as_binary(r, labels[0:200], images[0:200])
+    store_samples_in_redis_as_json(r, labels[0:200], images[0:200])
 
     # # Store all images
-    # my_images_binary = []
-    # for i in range(len(images)):
-    #     my_images_binary.append(serialize_to_binary(images[i]))
-    # my_images_csv = []
-    # for i in range(len(images)):
-    #     my_images_csv.append(serialize_to_csv(images[i]))
-
-    # store_samples_in_redis_as_binary(r, labels, my_images_binary)
-    # store_samples_in_redis_as_json(r, labels, my_images_csv)
+    # store_samples_in_redis_as_binary(r, labels, images)
+    # store_samples_in_redis_as_json(r, labels, images)
