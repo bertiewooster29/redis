@@ -64,6 +64,16 @@ def display_image(image):
     print()  # Empty line after image
 
 
+def serialize_to_csv(image):
+    """Serialize image matrix to comma-separated string."""
+    return ",".join(str(int(pixel)) for pixel in image.flatten())
+
+
+def serialize_to_binary(image):
+    """Serialize image matrix to binary string (one byte per pixel)."""
+    return image.tobytes()
+
+
 if __name__ == "__main__":
     dataset_path = Path("dataset/gzip")
 
