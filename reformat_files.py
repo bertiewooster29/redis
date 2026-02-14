@@ -111,7 +111,7 @@ def store_samples_in_redis_as_json(redis_client, labels, images):
         key = f"img:json:{i}"
         redis_client.json().set(key, "$", data)
         
-    print(f"Stored {min(len(labels), len(images_csv))} samples in Redis as JSON under img:json:x.")
+    print(f"Stored {min(len(labels), len(images))} samples in Redis as JSON under img:json:x.")
 
 
 def store_samples_in_redis_as_binary(redis_client, labels, images):
@@ -127,14 +127,14 @@ def store_samples_in_redis_as_binary(redis_client, labels, images):
         binary_string = serialize_to_binary(image)
 
         # Store in Redis under key img:label:{index} as an integer
-        label_key = f"img:label{i}"
+        label_key = f"img:label:{i}"
         redis_client.set(label_key, int(label))
         
         # Store in Redis under key img:string:{index} as a binary string
         image_key = f"img:string:{i}"
         redis_client.set(image_key, binary_string)
 
-    print(f"Stored {min(len(labels), len(images_binary))} samples in Redis as img:labelx and img:string:x.")
+    print(f"Stored {min(len(labels), len(images))} samples in Redis as img:label:x and img:string:x.")
 
 
 if __name__ == "__main__":
