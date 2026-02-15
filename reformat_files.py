@@ -137,6 +137,31 @@ def store_samples_in_redis_as_binary(redis_client, labels, images):
     print(f"Stored {min(len(labels), len(images))} samples in Redis as img:label:x and img:string:x.")
 
 
+def store_samples_in_redis_as_hset(redis_client, labels, images):
+    """Store label and image data in Redis as HSETs.
+    
+    Args:
+        redis_client: Redis connection object
+        labels: List/array of labels
+        images: List/array of image matrices in original format
+    """
+    for i, (label, image) in enumerate(zip(labels, images)):
+        # Convert image to binary string format
+        binary_string = serialize_to_binary(image)
+        
+        # Create mapping
+        data = {
+            "label": int(label),
+            "pixels": binary_string
+        }
+        
+        # Store in Redis under key img:json:x as a JSON object
+        key = f"img:hset:{i}"
+        redis_client.hset(key, mapping=data)
+        
+    print(f"Stored {min(len(labels), len(images))} samples in Redis as HSETs under img:hset:x.")
+
+
 if __name__ == "__main__":
     dataset_path = Path("dataset/gzip")
 
@@ -160,7 +185,11 @@ if __name__ == "__main__":
     # Store just a few images
     store_samples_in_redis_as_binary(r, labels[0:200], images[0:200])
     store_samples_in_redis_as_json(r, labels[0:200], images[0:200])
+    store_samples_in_redis_as_hset(r, labels[0:200], images[0:200])
 
     # # Store all images
     # store_samples_in_redis_as_binary(r, labels, images)
     # store_samples_in_redis_as_json(r, labels, images)
+
+    # We have saved the best for last: Redis hashes are (probably) the most compact way to store
+    # these data because, unlike JSON, they can store binary strings
