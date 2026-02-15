@@ -1,3 +1,5 @@
+## generate_embeddings.py
+
 import torch
 import torchvision
 from torchvision import transforms
@@ -57,12 +59,16 @@ transform = transforms.Compose([
 ])
 
 # Load MNIST dataset from local gz files
-print("Loading images from emnist-mnist-train-images-idx3-ubyte.gz...")
-images = read_idx_images('emnist-mnist-train-images-idx3-ubyte.gz')
+dataset_path = Path("dataset/gzip")
+embeddings_path = Path("dataset/embeddings")
+embeddings_path.mkdir(parents=True, exist_ok=True)
+
+print(f"Loading images from {dataset_path / 'emnist-mnist-train-images-idx3-ubyte.gz'}...")
+images = read_idx_images(dataset_path / 'emnist-mnist-train-images-idx3-ubyte.gz')
 print(f"Loaded {len(images)} images")
 
-print("Loading labels from emnist-mnist-train-labels-idx1-ubyte.gz...")
-labels_array = read_idx_labels('emnist-mnist-train-labels-idx1-ubyte.gz')
+print(f"Loading labels from {dataset_path / 'emnist-mnist-train-labels-idx1-ubyte.gz'}...")
+labels_array = read_idx_labels(dataset_path / 'emnist-mnist-train-labels-idx1-ubyte.gz')
 print(f"Loaded {len(labels_array)} labels")
 
 # Convert images to float32 and normalize to [0, 1]
@@ -132,8 +138,8 @@ print(f"Embeddings shape: {embeddings.shape}")  # Should be (60000, 512)
 print(f"Sample embedding for first image: {embeddings[0][:10]}...")  # Truncated for brevity
 
 # Save to file
-print("Saving embeddings to mnist_embeddings.npy...")
-np.save('mnist_embeddings.npy', embeddings)
-print("Saving labels to mnist_labels.npy...")
-np.save('mnist_labels.npy', labels)
+print(f"Saving embeddings to {embeddings_path / 'mnist_embeddings.npy'}...")
+np.save(embeddings_path / 'mnist_embeddings.npy', embeddings)
+print(f"Saving labels to {embeddings_path / 'mnist_labels.npy'}...")
+np.save(embeddings_path / 'mnist_labels.npy', labels)
 print("Done!")
