@@ -10,16 +10,13 @@ def store_as_raw(r, labels, images):
         images: Array of image matrices (28x28 unit8)
     """
     for i, (label, image) in enumerate(zip(labels, images)):
-        # Convert image to binary string format
-        image_string = serialize_to_binary(image)
-
         # Store in Redis under key img:label:{index} as an integer
         label_key = f"img:label:{i}"
         r.set(label_key, int(label))
         
         # Store in Redis under key img:image:{index} as a binary string
         image_key = f"img:raw_image:{i}"
-        r.set(image_key, image_string)
+        r.set(image_key, image.tobytes())
 
     print(f"Stored {min(len(labels), len(images))} samples in Redis as img:label:<n> and img:raw_image:<n>.")
 
@@ -53,7 +50,7 @@ def store_as_json(r, labels, images, embeddings):
 
 
 
-def store_as_hash(r, labels, images), embedings:
+def store_as_hash(r, labels, images, embeddings):
     """Store label, image, and embedding data in Redis as HASHes.
     
     Args:
@@ -63,19 +60,14 @@ def store_as_hash(r, labels, images), embedings:
         embeddings: Array of embeddings (512 floats each)
     """
     for i, (label, image, embedding) in enumerate(zip(labels, images, embeddings)):
-        # Convert image to binary string format
-        image_string = serialize_to_binary(image)
-        
-        # Convert image to binary string format
-        embedding_string = serialize_to_binary(embedding)
-
         # Create mapping
         data = {
             "label": int(label),
-            "pixels": image_string
+            "pixels": image.flatten().tobytes(),
+            "embedding": embedding.tobytes()
         }
         
-        # Store in Redis under key img:json:x as a JSON object
+        # Store in Redis under key img:hash:<n> as a HASH
         key = f"img:hash:{i}"
         r.hset(key, mapping=data)
         
